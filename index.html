@@ -4,10 +4,11 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>SEPREPA NEWS</title>
-  <meta name="description" content="Logros, eventos y registro de las Sociedades Estudiantiles de PrepaTec.">
+  <meta name="description" content="Logros, eventos y registro de las Sociedades Estudiantiles de PrepaTec en todos los campus.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;700;800&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <link rel="stylesheet" href="estilos.css">
 </head>
 <body>
@@ -15,39 +16,55 @@
   <!-- Barra superior -->
   <div class="barra-top">
     <div class="contenedor">
-      <span>Sociedades Estudiantiles · PrepaTec</span>
-      <a href="#publicar">¿Quieres publicar algo?</a>
+      <span>Sociedades Estudiantiles · PrepaTec · 29 campus</span>
+      <a href="#publicar">¿Quieres publicar algo? →</a>
     </div>
   </div>
 
   <!-- Encabezado y menú -->
   <header class="encabezado">
-    <div class="contenedor">
+    <div class="contenedor encabezado-fila">
       <a href="#" class="marca">SEPREPA<span>NEWS</span></a>
       <nav class="menu">
+        <a href="#mapa-seccion">Campus</a>
         <a href="#eventos">Eventos</a>
         <a href="#logros">Logros</a>
         <a href="#registro">Registro</a>
         <a href="#sociedades">Sociedades</a>
       </nav>
+      <select id="selector-campus" class="selector-campus" aria-label="Elegir campus">
+        <option value="">Todos los campus</option>
+      </select>
+    </div>
+    <div id="aviso-campus" class="aviso-campus" hidden>
+      <div class="contenedor">
+        <span>Estás viendo <strong id="aviso-nombre"></strong></span>
+        <button type="button" id="quitar-campus">Ver todos los campus ✕</button>
+      </div>
     </div>
   </header>
 
   <!-- Portada -->
   <section class="portada">
-    <div class="contenedor">
-      <p class="etiqueta">Hecho por y para estudiantes</p>
-      <h1>Todo lo que pasa en las <mark>Sociedades Estudiantiles</mark>, en un solo lugar.</h1>
-      <p class="portada-texto">
-        SEPREPA NEWS es el espacio donde las Sociedades Estudiantiles de la Prepa
-        comparten sus logros, anuncian sus próximos eventos y guardan registro de
-        todo lo que han hecho. Si tu sociedad hizo algo, aquí se queda.
-      </p>
-      <div class="portada-botones">
-        <a href="#eventos" class="boton boton-blanco">Ver próximos eventos</a>
-        <a href="#registro" class="boton boton-borde">Explorar el registro</a>
+    <div class="contenedor portada-rejilla">
+      <div>
+        <p class="etiqueta">Hecho por y para estudiantes</p>
+        <h1>Todo lo que pasa en las <mark>Sociedades Estudiantiles</mark>, en un solo lugar.</h1>
+        <p class="portada-texto">
+          SEPREPA NEWS es el espacio donde las Sociedades Estudiantiles de PrepaTec
+          comparten sus logros, anuncian sus próximos eventos y guardan registro de
+          todo lo que han hecho. Si tu sociedad hizo algo, aquí se queda.
+        </p>
+        <div class="portada-botones">
+          <a href="#mapa-seccion" class="boton boton-blanco">Buscar mi campus</a>
+          <a href="#eventos" class="boton boton-borde">Próximos eventos</a>
+        </div>
       </div>
+      <aside id="destacado" class="destacado"></aside>
+    </div>
+    <div class="contenedor">
       <div class="cifras">
+        <div><strong id="cifra-campus">0</strong><span>campus</span></div>
         <div><strong id="cifra-sociedades">0</strong><span>sociedades</span></div>
         <div><strong id="cifra-logros">0</strong><span>logros</span></div>
         <div><strong id="cifra-eventos">0</strong><span>eventos próximos</span></div>
@@ -55,11 +72,27 @@
     </div>
   </section>
 
-  <!-- Próximos eventos -->
-  <section id="eventos" class="seccion">
+  <!-- Mapa de campus -->
+  <section id="mapa-seccion" class="seccion">
     <div class="contenedor">
       <div class="seccion-titulo">
-        <h2>Próximos eventos</h2>
+        <span class="ceja">01 · Campus</span>
+        <h2>Explora por campus</h2>
+        <p>Toca un punto en el mapa o elige tu campus de la lista para ver sus eventos y logros.</p>
+      </div>
+      <div class="mapa-rejilla">
+        <div id="mapa" class="mapa" role="region" aria-label="Mapa de campus PrepaTec"></div>
+        <div id="lista-campus" class="lista-campus"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Próximos eventos -->
+  <section id="eventos" class="seccion seccion-gris">
+    <div class="contenedor">
+      <div class="seccion-titulo">
+        <span class="ceja">02 · Eventos</span>
+        <h2>Próximos eventos<span class="donde"></span></h2>
         <p>Apártalo en tu calendario.</p>
       </div>
       <div id="lista-eventos" class="rejilla-eventos"></div>
@@ -67,10 +100,11 @@
   </section>
 
   <!-- Logros -->
-  <section id="logros" class="seccion seccion-gris">
+  <section id="logros" class="seccion">
     <div class="contenedor">
       <div class="seccion-titulo">
-        <h2>Logros recientes</h2>
+        <span class="ceja">03 · Logros</span>
+        <h2>Logros recientes<span class="donde"></span></h2>
         <p>Lo que nuestras sociedades han conseguido.</p>
       </div>
       <div id="lista-logros" class="rejilla-logros"></div>
@@ -78,18 +112,19 @@
   </section>
 
   <!-- Registro completo -->
-  <section id="registro" class="seccion">
+  <section id="registro" class="seccion seccion-gris">
     <div class="contenedor">
       <div class="seccion-titulo">
-        <h2>Registro</h2>
+        <span class="ceja">04 · Registro</span>
+        <h2>Registro<span class="donde"></span></h2>
         <p>Todo lo que se ha publicado, del más nuevo al más viejo.</p>
       </div>
 
       <div class="filtros">
         <div class="filtro-tipos">
-          <button class="chip activo" data-tipo="todo">Todo</button>
-          <button class="chip" data-tipo="logro">Logros</button>
-          <button class="chip" data-tipo="evento">Eventos</button>
+          <button type="button" class="chip activo" data-tipo="todo">Todo</button>
+          <button type="button" class="chip" data-tipo="logro">Logros</button>
+          <button type="button" class="chip" data-tipo="evento">Eventos</button>
         </div>
         <select id="filtro-sociedad" aria-label="Filtrar por sociedad">
           <option value="">Todas las sociedades</option>
@@ -102,10 +137,11 @@
   </section>
 
   <!-- Sociedades -->
-  <section id="sociedades" class="seccion seccion-gris">
+  <section id="sociedades" class="seccion">
     <div class="contenedor">
       <div class="seccion-titulo">
-        <h2>Sociedades</h2>
+        <span class="ceja">05 · Sociedades</span>
+        <h2>Sociedades<span class="donde"></span></h2>
         <p>Conoce a quienes hacen que todo esto pase.</p>
       </div>
       <div id="lista-sociedades" class="rejilla-sociedades"></div>
@@ -118,8 +154,8 @@
       <h2>¿Tu sociedad quiere publicar algo?</h2>
       <ol class="pasos">
         <li><strong>Escríbenos</strong> qué pasó o qué evento van a hacer.</li>
-        <li><strong>Incluye</strong> fecha, lugar y una descripción corta.</li>
-        <li><strong>Lo subimos</strong> a la página y queda en el registro.</li>
+        <li><strong>Incluye</strong> tu campus, la fecha, el lugar y una descripción corta.</li>
+        <li><strong>Lo subimos</strong> a la página y queda en el registro de tu campus.</li>
       </ol>
       <a href="mailto:correo@ejemplo.com" class="boton boton-blanco">Enviar mi publicación</a>
     </div>
@@ -132,6 +168,8 @@
     </div>
   </footer>
 
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="campus.js"></script>
   <script src="contenido.js"></script>
   <script src="app.js"></script>
 </body>
