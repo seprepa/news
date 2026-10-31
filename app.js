@@ -62,8 +62,15 @@ function elegirCampus(id, irAEventos) {
 }
 
 // ----- Mapa -----
+// De lejos se ve México dibujado con sus estados. Al acercarte aparecen las calles.
+const ZOOM_CALLES = 9;
 const marcadores = {};
 let mapa = null;
+let capaPines = null;
+let capaEstados = null;
+let calles = null;
+let mascara = null;
+let limitesMexico = null;
 
 function icono(id) {
   const total = PUBLICACIONES.filter((p) => p.campus === id).length;
@@ -73,64 +80,172 @@ function icono(id) {
   return L.divIcon({
     className: "",
     html: `<span class="${clases.join(" ")}"></span>`,
-    iconSize: [20, 20],
-    iconAnchor: [10, 10],
+    iconSize: [22, 22],
+    iconAnchor: [11, 11],
   });
+}
+
+function iconoGrupo(cantidad, activo) {
+  return L.divIcon({
+    className: "",
+    html: `<span class="pin-grupo${activo ? " activo" : ""}">${cantidad}</span>`,
+    iconSize: [34, 34],
+    iconAnchor: [17, 17],
+  });
+}
+
+// ¿El punto [lng, lat] está dentro del contorno?
+function dentro(punto, anillo) {
+  let adentro = false;
+  for (let i = 0, j = anillo.length - 1; i < anillo.length; j = i++) {
+    const [xi, yi] = anillo[i];
+    const [xj, yj] = anillo[j];
+    if ((yi > punto[1]) !== (yj > punto[1]) &&
+        punto[0] < ((xj - xi) * (punto[1] - yi)) / (yj - yi) + xi) {
+      adentro = !adentro;
+    }
+  }
+  return adentro;
+}
+
+// Junta los campus que quedan encimados en un solo círculo con número
+function dibujarPines() {
+  capaPines.clearLayers();
+  const grupos = [];
+  CAMPUS.forEach((c) => {
+    const punto = mapa.latLngToLayerPoint([c.lat, c.lng]);
+    const grupo = grupos.find((g) => g.punto.distanceTo(punto) < 26);
+    if (grupo) grupo.campus.push(c);
+    else grupos.push({ punto, campus: [c] });
+  });
+
+  grupos.forEach((g) => {
+    if (g.campus.length === 1) {
+      capaPines.addLayer(marcadores[g.campus[0].id]);
+      return;
+    }
+    const lat = g.campus.reduce((s, c) => s + c.lat, 0) / g.campus.length;
+    const lng = g.campus.reduce((s, c) => s + c.lng, 0) / g.campus.length;
+    const activo = g.campus.some((c) => c.id === estado.campus);
+    const grupo = L.marker([lat, lng], { icon: iconoGrupo(g.campus.length, activo), zIndexOffset: 200 });
+    grupo.bindTooltip(
+      `<strong>${g.campus.length} campus</strong><br>${g.campus.map((c) => limpiar(c.nombre)).join("<br>")}<br><em>Toca para acercar</em>`,
+      { direction: "top", offset: [0, -18], className: "tooltip-mapa" });
+    grupo.on("click", () => {
+      mapa.fitBounds(g.campus.map((c) => [c.lat, c.lng]), { padding: [70, 70], maxZoom: 13 });
+    });
+    capaPines.addLayer(grupo);
+  });
+}
+
+// Muestra u oculta las calles según qué tan cerca estés
+function actualizarCapas() {
+  const cerca = mapa.getZoom() >= ZOOM_CALLES;
+  if (cerca && !mapa.hasLayer(calles)) {
+    calles.addTo(mapa);
+    mascara.addTo(mapa);
+  } else if (!cerca && mapa.hasLayer(calles)) {
+    mapa.removeLayer(calles);
+    mapa.removeLayer(mascara);
+  }
+  capaEstados.setStyle((f) => estiloEstado(f, cerca));
+  document.getElementById("ver-mexico").hidden = mapa.getZoom() <= mapa.getMinZoom() + 0.25;
+}
+
+function estiloEstado(f, cerca) {
+  return {
+    color: cerca ? "#0039a6" : "#9db3dc",
+    weight: cerca ? 2 : 1,
+    fillColor: f.properties.conCampus ? "#d6e2f6" : "#ffffff",
+    fillOpacity: cerca ? 0 : 1,
+  };
+}
+
+function verMexico() {
+  mapa.fitBounds(limitesMexico, { animate: false });
 }
 
 function moverMapa() {
   if (!mapa) return;
   if (estado.campus) {
     const c = campusPorId[estado.campus];
-    mapa.setView([c.lat, c.lng], 15);
+    mapa.setView([c.lat, c.lng], 15, { animate: false });
+    dibujarPines();
     marcadores[estado.campus].openTooltip();
   } else {
-    mapa.fitBounds(CAMPUS.map((c) => [c.lat, c.lng]), { padding: [24, 24] });
+    verMexico();
   }
 }
 
-if (window.L) {
-  mapa = L.map("mapa", { scrollWheelZoom: false, maxZoom: 19 });
+if (window.L && typeof ESTADOS_MEXICO !== "undefined") {
+  mapa = L.map("mapa", {
+    scrollWheelZoom: false,
+    maxZoom: 18,
+    zoomSnap: 0.25,
+    attributionControl: false,
+  });
+  L.control.attribution({ prefix: false }).addTo(mapa);
 
-  // Mapas base de Esri: funcionan aunque la página se abra con doble clic
-  const esri = "https://server.arcgisonline.com/ArcGIS/rest/services";
-  const calles = L.tileLayer(`${esri}/World_Street_Map/MapServer/tile/{z}/{y}/{x}`, {
+  // Estados que tienen al menos un campus se pintan de azul claro
+  ESTADOS_MEXICO.features.forEach((f) => {
+    f.properties.conCampus = CAMPUS.some((c) =>
+      f.geometry.coordinates.some((poligono) => dentro([c.lng, c.lat], poligono[0])));
+  });
+  capaEstados = L.geoJSON(ESTADOS_MEXICO, { style: (f) => estiloEstado(f, false), interactive: false }).addTo(mapa);
+  limitesMexico = capaEstados.getBounds();
+
+  // Calles (solo de cerca). Esri funciona aunque la página se abra con doble clic.
+  calles = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}", {
     attribution: "Mapa &copy; Esri, HERE, Garmin, OpenStreetMap",
-    maxZoom: 19,
+    maxZoom: 18,
     className: "capa-calles",
   });
-  const satelite = L.layerGroup([
-    L.tileLayer(`${esri}/World_Imagery/MapServer/tile/{z}/{y}/{x}`, {
-      attribution: "Imágenes &copy; Esri, Maxar, Earthstar Geographics",
-      maxZoom: 19,
-    }),
-    L.tileLayer(`${esri}/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}`, { maxZoom: 19 }),
-  ]);
-  calles.addTo(mapa);
-  L.control.layers({ "Mapa": calles, "Satélite": satelite }, null, { position: "topright" }).addTo(mapa);
-
-  // Si no carga ninguna parte del mapa, avisamos
   let cargados = 0;
   let fallidos = 0;
   calles.on("tileload", () => { cargados++; });
   calles.on("tileerror", () => {
     fallidos++;
-    if (fallidos === 6 && cargados === 0) {
-      document.getElementById("mapa-aviso").hidden = false;
-    }
+    if (fallidos === 6 && cargados === 0) document.getElementById("mapa-aviso").hidden = false;
   });
 
+  // Tapa todo lo que está fuera de México (Estados Unidos, Guatemala, etc.)
+  mapa.createPane("mascara").style.zIndex = 390;
+  const afuera = [[0, -140], [0, -70], [45, -70], [45, -140]];
+  const huecos = ESTADOS_MEXICO.features.flatMap((f) =>
+    f.geometry.coordinates.map((poligono) => poligono[0].map(([lng, lat]) => [lat, lng])));
+  mascara = L.polygon([afuera, ...huecos], {
+    pane: "mascara",
+    stroke: false,
+    fillColor: "#e9eff8",
+    fillOpacity: 1,
+    interactive: false,
+  });
+
+  verMexico();
+  mapa.setMinZoom(mapa.getZoom());
+  mapa.setMaxBounds(limitesMexico.pad(0.2));
+  mapa.on("resize", () => mapa.setMinZoom(mapa.getBoundsZoom(limitesMexico)));
+
+  capaPines = L.layerGroup().addTo(mapa);
   CAMPUS.forEach((c) => {
-    const marcador = L.marker([c.lat, c.lng], { icon: icono(c.id), title: nombreCampus(c.id) }).addTo(mapa);
+    const marcador = L.marker([c.lat, c.lng], { icon: icono(c.id), title: nombreCampus(c.id) });
     marcador.bindTooltip(`<strong>${nombreCampus(c.id)}</strong><br>${c.ciudad}`, {
-      direction: "top", offset: [0, -10],
+      direction: "top", offset: [0, -12], className: "tooltip-mapa",
     });
     marcador.on("click", () => elegirCampus(c.id, true));
     marcadores[c.id] = marcador;
   });
+
+  mapa.on("zoomend", () => { dibujarPines(); actualizarCapas(); });
+  document.getElementById("ver-mexico").addEventListener("click", () => {
+    mapa.closeTooltip();
+    verMexico();
+  });
+  dibujarPines();
+  actualizarCapas();
 } else {
   document.getElementById("mapa").innerHTML =
-    '<p class="vacio">No se pudo cargar el mapa. Revisa tu conexión a internet o usa la lista de campus.</p>';
+    '<p class="vacio">No se pudo cargar el mapa. Usa la lista de campus.</p>';
 }
 
 // ----- Lista de campus junto al mapa y selector del encabezado -----
@@ -321,6 +436,7 @@ function render() {
   mostrarRegistro();
   mostrarListaCampus();
   Object.keys(marcadores).forEach((id) => marcadores[id].setIcon(icono(id)));
+  if (mapa) dibujarPines();
 }
 
 // Si el enlace trae un campus (ej. index.html#campus=cumbres), lo abrimos directo

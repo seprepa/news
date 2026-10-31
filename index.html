@@ -83,6 +83,12 @@
       <div class="mapa-rejilla">
         <div class="mapa-caja">
           <div id="mapa" class="mapa" role="region" aria-label="Mapa de campus PrepaTec"></div>
+          <button type="button" id="ver-mexico" class="ver-mexico" hidden>← Ver todo México</button>
+          <div class="leyenda" aria-hidden="true">
+            <span><i class="pin con-contenido"></i>Con publicaciones</span>
+            <span><i class="pin"></i>Sin publicaciones</span>
+            <span><i class="pin-grupo">3</i>Varios campus</span>
+          </div>
           <p id="mapa-aviso" class="mapa-aviso" hidden>No se pudo cargar el mapa. Revisa tu conexión a internet; mientras, puedes usar la lista de campus.</p>
         </div>
         <div id="lista-campus" class="lista-campus"></div>
@@ -172,6 +178,7 @@
   </footer>
 
   <script src="vendor/leaflet/leaflet.js"></script>
+  <script src="mapa-mexico.js"></script>
   <script src="campus.js"></script>
   <script src="contenido.js"></script>
   <script src="app.js"></script>

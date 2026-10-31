@@ -269,17 +269,78 @@ section { scroll-margin-top: 110px; }
   grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
   gap: 24px;
 }
+/* Fondo con puntitos: es el "mar" alrededor de México */
 .mapa {
   height: 520px;
   border: 1px solid var(--linea);
-  border-radius: var(--radio);
-  background: var(--gris);
+  border-radius: 10px;
+  background-color: #e9eff8;
+  background-image: radial-gradient(rgba(0, 57, 166, 0.12) 1px, transparent 1.2px);
+  background-size: 14px 14px;
   z-index: 0;
 }
 .mapa .vacio { padding: 24px; }
+.mapa .leaflet-interactive { transition: fill-opacity 0.2s; }
 /* Mapa de calles en tonos suaves para que resalten los puntos azules */
 .mapa .capa-calles { filter: saturate(0.35) brightness(1.03); }
 .mapa-caja { position: relative; }
+
+.mapa .leaflet-control-zoom {
+  border: 0;
+  box-shadow: 0 2px 6px rgba(0, 30, 80, 0.18);
+  border-radius: var(--radio);
+  overflow: hidden;
+}
+.mapa .leaflet-control-zoom a {
+  color: var(--azul);
+  font-weight: 700;
+  width: 34px;
+  height: 34px;
+  line-height: 34px;
+}
+.mapa .leaflet-control-attribution {
+  background: rgba(255, 255, 255, 0.7);
+  font-size: 10px;
+}
+
+.ver-mexico {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 500;
+  font-family: "Montserrat", Arial, sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--blanco);
+  background: var(--azul);
+  border: 0;
+  border-radius: 999px;
+  padding: 8px 14px;
+  box-shadow: 0 2px 6px rgba(0, 30, 80, 0.25);
+  cursor: pointer;
+}
+.ver-mexico:hover { background: var(--azul-oscuro); }
+
+.leyenda {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  z-index: 500;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--texto);
+  background: rgba(255, 255, 255, 0.92);
+  border-radius: var(--radio);
+  padding: 8px 12px;
+  box-shadow: 0 1px 4px rgba(0, 30, 80, 0.15);
+  pointer-events: none;
+}
+.leyenda span { display: flex; align-items: center; gap: 6px; }
+.leyenda .pin { width: 12px; height: 12px; border-width: 2px; box-shadow: none; }
+.leyenda .pin-grupo { width: 18px; height: 18px; font-size: 10px; border-width: 2px; font-style: normal; }
 .mapa-aviso {
   position: absolute;
   left: 12px;
@@ -294,23 +355,67 @@ section { scroll-margin-top: 110px; }
   border-radius: var(--radio);
   box-shadow: 0 2px 8px rgba(0, 30, 80, 0.2);
 }
-.leaflet-control-layers { font-family: "Open Sans", Arial, sans-serif; }
 
+/* ----- Puntos de los campus ----- */
 .pin {
   display: block;
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
   background: var(--blanco);
-  border: 3px solid var(--azul);
-  box-shadow: 0 1px 3px rgba(0, 30, 80, 0.35);
+  border: 4px solid var(--azul);
+  box-shadow: 0 2px 5px rgba(0, 30, 80, 0.35);
   transition: transform 0.15s;
 }
 .pin.con-contenido { background: var(--azul); border-color: var(--blanco); }
-.pin.activo { background: #ffcc00; border-color: var(--azul-oscuro); transform: scale(1.35); }
-.pin:hover { transform: scale(1.25); }
+.pin.activo { background: #ffcc00; border-color: var(--azul-oscuro); transform: scale(1.3); }
+.pin.activo::after {
+  content: "";
+  position: absolute;
+  inset: -10px;
+  border-radius: 50%;
+  border: 3px solid #ffcc00;
+  animation: pulso 1.6s ease-out infinite;
+}
+.pin { position: relative; }
+.pin:hover { transform: scale(1.2); }
 
-.leaflet-tooltip { font-family: "Open Sans", Arial, sans-serif; font-size: 13px; }
+.pin-grupo {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  font-family: "Montserrat", Arial, sans-serif;
+  font-weight: 800;
+  font-size: 14px;
+  color: var(--blanco);
+  background: var(--azul-oscuro);
+  border: 3px solid var(--blanco);
+  box-shadow: 0 0 0 4px rgba(0, 57, 166, 0.25), 0 2px 6px rgba(0, 30, 80, 0.35);
+  transition: transform 0.15s;
+}
+.pin-grupo:hover { transform: scale(1.12); }
+.pin-grupo.activo { background: #ffcc00; color: var(--azul-oscuro); }
+
+@keyframes pulso {
+  from { transform: scale(0.6); opacity: 1; }
+  to { transform: scale(1.6); opacity: 0; }
+}
+
+.leaflet-tooltip.tooltip-mapa {
+  font-family: "Open Sans", Arial, sans-serif;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--blanco);
+  background: var(--azul-oscuro);
+  border: 0;
+  border-radius: var(--radio);
+  padding: 8px 12px;
+  box-shadow: 0 4px 12px rgba(0, 30, 80, 0.3);
+}
+.leaflet-tooltip.tooltip-mapa::before { border-top-color: var(--azul-oscuro); }
+.leaflet-tooltip.tooltip-mapa em { color: #9fc0ff; font-size: 12px; }
 
 .lista-campus {
   max-height: 520px;

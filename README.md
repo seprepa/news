@@ -30,6 +30,7 @@ Copia un bloque `{ ... }`, pégalo y cambia los textos. Guarda el archivo y reca
 | `contenido.js` | **El contenido (aquí se edita)** |
 | `campus.js` | La lista de los 29 campus y su ubicación exacta en el mapa |
 | `app.js` | Arma la página y el mapa con el contenido |
+| `mapa-mexico.js` | El dibujo de los 32 estados de México para el mapa (no se edita) |
 | `vendor/leaflet/` | La librería del mapa ([Leaflet](https://leafletjs.com) 1.9.4), guardada aquí para no depender de otros sitios |
 
-El mapa base (calles y satélite) viene de Esri y necesita internet.
+De lejos, el mapa es un dibujo de México (funciona sin internet). Al acercarte aparecen las calles, que vienen de Esri y sí necesitan internet.
