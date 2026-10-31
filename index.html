@@ -5,6 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>SEPREPA NEWS</title>
   <meta name="description" content="Logros, eventos y registro de las Sociedades Estudiantiles de PrepaTec en todos los campus.">
+  <meta name="theme-color" content="#0039a6">
+  <meta name="author" content="Miguel Ortiz, Jose Miguel Compean, Andre Montes de Oca">
+  <!-- Vista previa al compartir el enlace (WhatsApp, redes, etc.) -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="SEPREPA NEWS">
+  <meta property="og:description" content="Logros, eventos y registro de las Sociedades Estudiantiles de PrepaTec en todos los campus.">
+  <meta property="og:locale" content="es_MX">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230039a6'/%3E%3Ctext x='16' y='23' font-family='Arial' font-weight='700' font-size='18' fill='white' text-anchor='middle'%3ES%3C/text%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -13,6 +20,7 @@
   <link rel="stylesheet" href="estilos.css">
 </head>
 <body>
+  <a href="#contenido" class="saltar">Saltar al contenido</a>
 
   <!-- Barra superior -->
   <div class="barra-top">
@@ -45,6 +53,7 @@
     </div>
   </header>
 
+  <main id="contenido">
   <!-- Portada -->
   <section class="portada">
     <div class="contenedor portada-rejilla">
@@ -106,6 +115,7 @@
         <p>Apártalo en tu calendario.</p>
       </div>
       <div id="lista-eventos" class="rejilla-eventos"></div>
+      <button type="button" id="ver-todos-eventos" class="ver-todos" hidden></button>
     </div>
   </section>
 
@@ -118,6 +128,7 @@
         <p>Lo que nuestras sociedades han conseguido.</p>
       </div>
       <div id="lista-logros" class="rejilla-logros"></div>
+      <button type="button" id="ver-todos-logros" class="ver-todos" hidden></button>
     </div>
   </section>
 
@@ -142,7 +153,9 @@
         <input id="filtro-texto" type="search" placeholder="Buscar…" aria-label="Buscar en el registro">
       </div>
 
+      <p id="registro-conteo" class="registro-conteo" aria-live="polite"></p>
       <ul id="lista-registro" class="registro"></ul>
+      <button type="button" id="registro-ver-mas" class="ver-mas" hidden>Ver más publicaciones</button>
     </div>
   </section>
 
@@ -171,12 +184,41 @@
     </div>
   </section>
 
+  </main>
+
   <footer class="pie">
-    <div class="contenedor">
-      <span class="marca">SEPREPA<span>NEWS</span></span>
-      <p>Proyecto estudiantil de las Sociedades Estudiantiles de PrepaTec.</p>
+    <div class="contenedor pie-rejilla">
+      <div class="pie-marca">
+        <span class="marca">SEPREPA<span>NEWS</span></span>
+        <p>Logros, eventos y registro de las Sociedades Estudiantiles de PrepaTec, en los 29 campus.</p>
+      </div>
+
+      <nav class="pie-enlaces" aria-label="Secciones">
+        <h2>Secciones</h2>
+        <a href="#mapa-seccion">Campus</a>
+        <a href="#eventos">Eventos</a>
+        <a href="#logros">Logros</a>
+        <a href="#registro">Registro</a>
+        <a href="#sociedades">Sociedades</a>
+        <a href="#publicar">Publicar</a>
+      </nav>
+
+      <div class="creadores">
+        <h2>Creado por</h2>
+        <ul>
+          <li><span class="creador-inicial" aria-hidden="true">MO</span>Miguel Ortiz</li>
+          <li><span class="creador-inicial" aria-hidden="true">JC</span>Jose Miguel Compean</li>
+          <li><span class="creador-inicial" aria-hidden="true">AM</span>Andre Montes de Oca</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="contenedor pie-final">
+      <p>© <span id="anio">2026</span> SEPREPA NEWS · Proyecto estudiantil, no es un sitio oficial del Tecnológico de Monterrey.</p>
     </div>
   </footer>
+
+  <button type="button" id="volver-arriba" class="volver-arriba" aria-label="Volver arriba">↑</button>
 
   <script src="vendor/leaflet/leaflet.js"></script>
   <script src="mapa-mexico.js"></script>

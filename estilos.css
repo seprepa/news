@@ -524,20 +524,50 @@ section { scroll-margin-top: 110px; }
   gap: 24px;
 }
 .logro {
+  display: flex;
+  flex-direction: column;
   background: var(--blanco);
   border: 1px solid var(--linea);
   border-radius: var(--radio);
   overflow: hidden;
+  transition: border-color 0.15s, transform 0.15s, box-shadow 0.15s;
+}
+.logro:hover {
+  border-color: var(--azul);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 30, 80, 0.08);
 }
 .logro-imagen {
+  --fondo: var(--azul-oscuro);
   aspect-ratio: 16 / 9;
   background:
-    repeating-linear-gradient(-45deg, transparent 0 14px, rgba(255, 255, 255, 0.06) 14px 28px),
-    var(--azul-oscuro);
+    repeating-linear-gradient(-45deg, transparent 0 14px, rgba(255, 255, 255, 0.07) 14px 28px),
+    var(--fondo);
   display: flex;
   align-items: flex-end;
   padding: 14px;
   position: relative;
+}
+/* Cada campus tiene su propio tono de azul */
+.logro-imagen.tono-1 { --fondo: #001e50; }
+.logro-imagen.tono-2 { --fondo: #0039a6; }
+.logro-imagen.tono-3 { --fondo: #0b4f8a; }
+.logro-imagen.tono-4 { --fondo: #23307a; }
+.logro-imagen::before {
+  content: "★ Logro";
+  position: absolute;
+  top: 12px;
+  left: 14px;
+  font-family: "Montserrat", Arial, sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--azul-oscuro);
+  background: #ffcc00;
+  border-radius: 3px;
+  padding: 3px 7px;
+  z-index: 1;
 }
 .logro-imagen img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .logro-imagen span {
@@ -547,10 +577,36 @@ section { scroll-margin-top: 110px; }
   color: var(--blanco);
   line-height: 1.1;
 }
-.logro-cuerpo { padding: 18px 20px 20px; }
+.logro-cuerpo { padding: 18px 20px 20px; display: flex; flex-direction: column; flex: 1; }
 .logro h3 { font-size: 18px; line-height: 1.25; margin: 0 0 8px; color: var(--azul-oscuro); }
 .logro p { margin: 0 0 12px; font-size: 15px; }
-.logro time { font-size: 13px; color: var(--texto-suave); }
+.logro time {
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid var(--linea);
+  font-size: 13px;
+  color: var(--texto-suave);
+}
+
+/* Botones "Ver todos" y "Ver más" */
+.ver-todos,
+.ver-mas {
+  display: block;
+  margin: 28px auto 0;
+  font-family: "Montserrat", Arial, sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--azul);
+  background: var(--blanco);
+  border: 2px solid var(--azul);
+  border-radius: 999px;
+  padding: 10px 22px;
+  cursor: pointer;
+}
+.ver-todos:hover,
+.ver-mas:hover { background: var(--azul); color: var(--blanco); }
+.ver-todos[hidden],
+.ver-mas[hidden] { display: none; }
 
 /* ===== Registro ===== */
 .filtros {
@@ -594,11 +650,27 @@ section { scroll-margin-top: 110px; }
   border: 1px solid var(--linea);
   border-radius: var(--radio);
 }
-.registro li {
+.registro-conteo {
+  margin: -8px 0 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--texto-suave);
+}
+.registro-mes {
+  font-family: "Montserrat", Arial, sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--azul);
+  padding: 18px 0 6px;
+  border-bottom: 2px solid var(--azul-claro);
+}
+.registro-item {
   display: grid;
-  grid-template-columns: 140px 80px 1fr;
+  grid-template-columns: 110px 70px 1fr;
   gap: 16px;
-  padding: 18px 0;
+  padding: 16px 0;
   border-bottom: 1px solid var(--linea);
   align-items: baseline;
 }
@@ -607,8 +679,7 @@ section { scroll-margin-top: 110px; }
 .registro strong { color: var(--azul-oscuro); font-size: 16px; }
 .registro .meta { margin: 2px 0 4px; }
 .registro p { margin: 0; font-size: 14px; color: var(--texto-suave); }
-.registro .vacio { padding: 4px 0; }
-.registro li.sin-resultados { display: block; }
+.registro .vacio { padding: 18px 0; }
 
 .tipo {
   font-size: 12px;
@@ -682,19 +753,126 @@ section { scroll-margin-top: 110px; }
 .pie {
   background: #00163b;
   color: #9fb0d0;
-  padding: 28px 0;
   font-size: 14px;
 }
-.pie .contenedor {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
+.pie-rejilla {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 0.8fr) minmax(0, 1.2fr);
+  gap: 40px;
+  padding-top: 56px;
+  padding-bottom: 40px;
 }
 .pie p { margin: 0; }
-.pie .marca { color: var(--blanco); font-size: 18px; }
+.pie .marca { color: var(--blanco); font-size: 22px; display: inline-block; margin-bottom: 12px; }
 .pie .marca span { color: #9fb0d0; }
+.pie-marca p { max-width: 320px; line-height: 1.6; }
+.pie h2 {
+  font-family: "Montserrat", Arial, sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--resaltador);
+  margin: 0 0 14px;
+}
+.pie-enlaces { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.pie-enlaces a { color: #c9d4ea; text-decoration: none; }
+.pie-enlaces a:hover { color: var(--blanco); text-decoration: underline; }
+
+.creadores ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.creadores li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: "Montserrat", Arial, sans-serif;
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--blanco);
+}
+.creador-inicial {
+  flex: 0 0 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--azul-oscuro);
+  background: var(--resaltador);
+  border-radius: 50%;
+}
+.pie-final {
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  padding-top: 18px;
+  padding-bottom: 22px;
+  font-size: 13px;
+  color: #7f92b8;
+}
+
+/* ===== Agregar al calendario ===== */
+.agregar-calendario {
+  display: inline-block;
+  margin-top: 12px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--azul);
+  text-decoration: none;
+}
+.agregar-calendario:hover { text-decoration: underline; }
+
+/* ===== Menú: sección actual ===== */
+.menu a.activo { color: var(--azul); border-bottom-color: var(--azul); }
+
+/* ===== Volver arriba ===== */
+.volver-arriba {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 900;
+  width: 46px;
+  height: 46px;
+  border: 0;
+  border-radius: 50%;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--blanco);
+  background: var(--azul);
+  box-shadow: 0 4px 12px rgba(0, 30, 80, 0.3);
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(10px);
+  transition: opacity 0.2s, transform 0.2s;
+}
+.volver-arriba.visible { opacity: 1; pointer-events: auto; transform: none; }
+.volver-arriba:hover { background: var(--azul-oscuro); }
+
+/* ===== Teclado y accesibilidad ===== */
+.saltar {
+  position: absolute;
+  left: 16px;
+  top: -60px;
+  z-index: 2000;
+  background: var(--blanco);
+  color: var(--azul);
+  font-weight: 700;
+  padding: 10px 16px;
+  border-radius: var(--radio);
+  box-shadow: 0 2px 8px rgba(0, 30, 80, 0.25);
+}
+.saltar:focus { top: 12px; }
+
+:focus-visible {
+  outline: 3px solid #ffcc00;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
 
 /* ===== Tablet ===== */
 @media (max-width: 960px) {
@@ -704,6 +882,8 @@ section { scroll-margin-top: 110px; }
   .mapa { height: 420px; }
   .lista-campus { max-height: none; overflow: visible; }
   .campus-botones { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }
+  .pie-rejilla { grid-template-columns: 1fr 1fr; }
+  .pie-marca { grid-column: 1 / -1; }
 }
 
 /* ===== Celular ===== */
@@ -722,6 +902,9 @@ section { scroll-margin-top: 110px; }
   .seccion { padding: 52px 0; }
   .mapa { height: 340px; }
   .campus-botones { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .registro li { grid-template-columns: 1fr; gap: 2px; }
+  .registro-item { grid-template-columns: auto 1fr; gap: 2px 12px; }
+  .registro-item > div { grid-column: 1 / -1; }
+  .pie-rejilla { grid-template-columns: 1fr; gap: 32px; padding-top: 44px; }
+  .volver-arriba { right: 14px; bottom: 14px; }
   .aviso-campus .contenedor { font-size: 13px; }
 }

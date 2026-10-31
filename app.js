@@ -122,6 +122,13 @@ function vacio(texto) {
   return `<p class="vacio">${texto} <a href="#publicar">¿Tu sociedad quiere ser la primera?</a></p>`;
 }
 
+// Cada campus tiene siempre el mismo tono de color (1 a 4) en las tarjetas de logros
+function tonoCampus(id) {
+  let suma = 0;
+  for (const letra of String(id)) suma = (suma * 31 + letra.charCodeAt(0)) % 997;
+  return (suma % 4) + 1;
+}
+
 function inicial(nombre) {
   const sinPrefijo = nombre.replace(/^Sociedad\s+(de\s+(la\s+|las\s+|los\s+|el\s+)?|del\s+)?/i, "");
   return (sinPrefijo.charAt(0) || nombre.charAt(0)).toUpperCase();
@@ -396,6 +403,24 @@ function llenarSociedades() {
   selectSociedad.value = existe ? elegida : "";
 }
 
+// El registro muestra de 10 en 10, agrupado por mes
+const POR_PAGINA = 10;
+let registroVisibles = POR_PAGINA;
+const botonVerMas = document.getElementById("registro-ver-mas");
+const conteoRegistro = document.getElementById("registro-conteo");
+
+// "Sáb 29 ago"
+function fechaCorta(texto) {
+  const fecha = leerFecha(texto);
+  const dia = fecha.toLocaleDateString("es-MX", { weekday: "short" }).replace(/\./g, "");
+  const mes = fecha.toLocaleDateString("es-MX", { month: "short" }).replace(/\./g, "");
+  return `${dia.charAt(0).toUpperCase()}${dia.slice(1)} ${fecha.getDate()} ${mes}`;
+}
+
+function mesYAnio(texto) {
+  return leerFecha(texto).toLocaleDateString("es-MX", { month: "long", year: "numeric" });
+}
+
 function mostrarRegistro() {
   const buscar = normalizar(inputTexto.value.trim());
   const sociedad = selectSociedad.value;
@@ -404,27 +429,74 @@ function mostrarRegistro() {
     if (estado.tipo !== "todo" && p.tipo !== estado.tipo) return false;
     if (sociedad && claveSociedad(p) !== sociedad) return false;
     if (buscar) {
-      const todo = normalizar(`${p.titulo} ${p.sociedad} ${p.descripcion} ${p.lugar} ${nombreCampus(p.campus)}`);
+      const todo = normalizar([p.titulo, p.sociedad, p.descripcion, p.lugar, nombreCampus(p.campus)].filter(Boolean).join(" "));
       if (!todo.includes(buscar)) return false;
     }
     return true;
   });
+
+  conteoRegistro.textContent = resultados.length === 1 ? "1 publicación" : `${resultados.length} publicaciones`;
+  botonVerMas.hidden = resultados.length <= registroVisibles;
 
   if (resultados.length === 0) {
     listaRegistro.innerHTML = '<li class="sin-resultados"><p class="vacio">No encontramos nada con esos filtros.</p></li>';
     return;
   }
 
-  listaRegistro.innerHTML = resultados.map((p) => `
-    <li>
-      <time datetime="${p.fecha}">${fechaLarga(p.fecha)}</time>
+  let mesAnterior = "";
+  listaRegistro.innerHTML = resultados.slice(0, registroVisibles).map((p) => {
+    const mes = mesYAnio(p.fecha);
+    const titulo = mes !== mesAnterior ? `<li class="registro-mes">${mes}</li>` : "";
+    mesAnterior = mes;
+    return `${titulo}
+    <li class="registro-item">
+      <time datetime="${p.fecha}">${fechaCorta(p.fecha)}</time>
       <span class="tipo tipo-${p.tipo}">${p.tipo === "logro" ? "Logro" : "Evento"}</span>
       <div>
         <strong>${limpiar(p.titulo)}</strong>
         <p class="meta">${limpiar([p.sociedad, nombreCampus(p.campus)].filter(Boolean).join(" · "))}</p>
         <p>${limpiar(p.descripcion)}</p>
       </div>
-    </li>`).join("");
+    </li>`;
+  }).join("");
+}
+
+// Cuando cambia un filtro, el registro vuelve a empezar desde arriba
+function filtrarRegistro() {
+  registroVisibles = POR_PAGINA;
+  mostrarRegistro();
+}
+
+botonVerMas.addEventListener("click", () => {
+  registroVisibles += POR_PAGINA;
+  mostrarRegistro();
+});
+
+// Botón de "Ver todos": filtra el registro por tipo y baja hasta él
+function verTodosEnRegistro(tipo) {
+  const chip = document.querySelector(`.chip[data-tipo="${tipo}"]`);
+  if (chip) chip.click();
+  document.getElementById("registro").scrollIntoView({ behavior: "smooth" });
+}
+document.getElementById("ver-todos-eventos").addEventListener("click", () => verTodosEnRegistro("evento"));
+document.getElementById("ver-todos-logros").addEventListener("click", () => verTodosEnRegistro("logro"));
+
+// Enlace para agregar un evento a Google Calendar (como evento de todo el día)
+function enlaceCalendario(e) {
+  const inicio = leerFecha(e.fecha);
+  const fin = new Date(inicio);
+  fin.setDate(fin.getDate() + 1);
+  const formato = (f) => `${f.getFullYear()}${String(f.getMonth() + 1).padStart(2, "0")}${String(f.getDate()).padStart(2, "0")}`;
+  const detalles = [e.hora && `Hora: ${e.hora}`, e.descripcion, e.sociedad].filter(Boolean).join("\n");
+  const lugar = [e.lugar, nombreCampus(e.campus)].filter(Boolean).join(", ");
+  const parametros = new URLSearchParams({
+    action: "TEMPLATE",
+    text: e.titulo,
+    dates: `${formato(inicio)}/${formato(fin)}`,
+    details: detalles,
+    location: lugar,
+  });
+  return `https://calendar.google.com/calendar/render?${parametros}`;
 }
 
 botonesTipo.forEach((boton) => {
@@ -434,11 +506,11 @@ botonesTipo.forEach((boton) => {
       b.setAttribute("aria-pressed", b === boton);
     });
     estado.tipo = boton.dataset.tipo;
-    mostrarRegistro();
+    filtrarRegistro();
   });
 });
-selectSociedad.addEventListener("change", mostrarRegistro);
-inputTexto.addEventListener("input", mostrarRegistro);
+selectSociedad.addEventListener("change", filtrarRegistro);
+inputTexto.addEventListener("input", filtrarRegistro);
 
 // ----- Dibujar toda la página -----
 function render() {
@@ -494,16 +566,19 @@ function render() {
             <p class="meta">${limpiar([e.sociedad, nombreCampus(e.campus)].filter(Boolean).join(" · "))}</p>
             <p class="detalles">${limpiar([e.hora, e.lugar].filter(Boolean).join(" · "))}</p>
             <p>${limpiar(e.descripcion)}</p>
+            <a class="agregar-calendario" href="${limpiar(enlaceCalendario(e))}" target="_blank" rel="noopener">+ Agregar a mi calendario</a>
           </div>
         </article>`;
     }).join("");
+  document.getElementById("ver-todos-eventos").hidden = eventosProximos.length <= 6;
+  document.getElementById("ver-todos-eventos").textContent = `Ver los ${eventosProximos.length} eventos →`;
 
   // Logros
   document.getElementById("lista-logros").innerHTML = logros.length === 0
     ? vacio("Todavía no hay logros publicados.")
     : logros.slice(0, 6).map((l) => `
       <article class="logro">
-        <div class="logro-imagen">
+        <div class="logro-imagen tono-${tonoCampus(l.campus)}">
           <span>${limpiar(campusPorId[l.campus].nombre)}</span>
           ${l.imagen ? `<img src="${limpiar(l.imagen)}" alt="" loading="lazy" onerror="this.remove()">` : ""}
         </div>
@@ -514,6 +589,8 @@ function render() {
           <time datetime="${l.fecha}">${fechaLarga(l.fecha)} · ${limpiar(nombreCampus(l.campus))}</time>
         </div>
       </article>`).join("");
+  document.getElementById("ver-todos-logros").hidden = logros.length <= 6;
+  document.getElementById("ver-todos-logros").textContent = `Ver los ${logros.length} logros →`;
 
   // Sociedades
   document.getElementById("lista-sociedades").innerHTML = sociedades.length === 0
@@ -534,7 +611,7 @@ function render() {
 
   // Registro, lista de campus y mapa
   llenarSociedades();
-  mostrarRegistro();
+  filtrarRegistro();
   mostrarListaCampus();
   if (mapa) {
     Object.keys(marcadores).forEach((id) => marcadores[id].setIcon(icono(id)));
@@ -553,6 +630,35 @@ window.addEventListener("hashchange", () => {
   const id = campusDelEnlace();
   if (id && id !== estado.campus) elegirCampus(id, true);
 });
+
+// ----- Menú: marca la sección en la que estás -----
+const enlacesMenu = [...document.querySelectorAll(".menu a")];
+if ("IntersectionObserver" in window) {
+  const observador = new IntersectionObserver((entradas) => {
+    entradas.forEach((entrada) => {
+      if (!entrada.isIntersecting) return;
+      enlacesMenu.forEach((a) => {
+        const activo = a.getAttribute("href") === `#${entrada.target.id}`;
+        a.classList.toggle("activo", activo);
+        if (activo) a.setAttribute("aria-current", "true");
+        else a.removeAttribute("aria-current");
+      });
+    });
+  }, { rootMargin: "-45% 0px -50% 0px" });
+  enlacesMenu.forEach((a) => {
+    const seccion = document.querySelector(a.getAttribute("href"));
+    if (seccion) observador.observe(seccion);
+  });
+}
+
+// ----- Botón para volver arriba -----
+const botonArriba = document.getElementById("volver-arriba");
+window.addEventListener("scroll", () => {
+  botonArriba.classList.toggle("visible", window.scrollY > 900);
+}, { passive: true });
+botonArriba.addEventListener("click", () => window.scrollTo({ top: 0, behavior: "smooth" }));
+
+document.getElementById("anio").textContent = new Date().getFullYear();
 
 estado.campus = campusDelEnlace();
 render();
