@@ -17,6 +17,8 @@ En `campus` va el `id` del campus, que está en `campus.js`, por ejemplo `"ciuda
 
 Copia un bloque `{ ... }`, pégalo y cambia los textos. Guarda el archivo y recarga la página.
 
+Si algo quedó mal escrito (una coma que falta, una fecha como `14/11/2026`, un campus que no existe), la página no se rompe: se salta eso y arriba aparece un aviso amarillo diciendo qué corregir. Ese aviso solo se ve en tu computadora, no en la página publicada.
+
 ## Enlace directo a un campus
 
 `index.html#campus=ciudad-de-mexico` abre la página mostrando solo ese campus.
