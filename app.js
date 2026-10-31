@@ -5,12 +5,18 @@ const hoy = new Date();
 hoy.setHours(0, 0, 0, 0);
 
 const estado = { campus: "", tipo: "todo" };
-const campusPorId = Object.fromEntries(CAMPUS.map((c) => [c.id, c]));
 
 // ----- Ayudantes -----
 function leerFecha(texto) {
   const [anio, mes, dia] = texto.split("-").map(Number);
   return new Date(anio, mes - 1, dia);
+}
+
+function fechaValida(texto) {
+  if (typeof texto !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(texto)) return false;
+  const [anio, mes, dia] = texto.split("-").map(Number);
+  const fecha = new Date(anio, mes - 1, dia);
+  return fecha.getFullYear() === anio && fecha.getMonth() === mes - 1 && fecha.getDate() === dia;
 }
 
 function fechaLarga(texto) {
@@ -32,6 +38,71 @@ function limpiar(texto) {
   return div.innerHTML;
 }
 
+// Para buscar sin importar acentos ni mayúsculas: "Robótica" = "robotica"
+function normalizar(texto) {
+  return String(texto || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+}
+
+const textoValido = (t) => typeof t === "string" && t.trim() !== "";
+
+// ----- Revisar que los datos estén bien escritos -----
+// Si algo está mal en contenido.js o campus.js, la página no se rompe:
+// se salta esa parte y avisa qué hay que corregir.
+const problemas = [];
+
+const todosLosCampus = typeof CAMPUS !== "undefined" ? CAMPUS : [];
+if (typeof CAMPUS === "undefined") {
+  problemas.push("campus.js tiene un error de escritura (revisa comas, comillas y llaves).");
+}
+const campusPorId = Object.fromEntries(todosLosCampus.map((c) => [c.id, c]));
+
+const datosEscritos = typeof SOCIEDADES !== "undefined" && typeof PUBLICACIONES !== "undefined";
+if (!datosEscritos) {
+  problemas.push("contenido.js tiene un error de escritura (revisa comas, comillas y llaves). Por eso no aparece el contenido.");
+}
+
+const todasLasSociedades = (datosEscritos ? SOCIEDADES : []).filter((s, i) => {
+  const nombre = s && textoValido(s.nombre) ? `"${s.nombre}"` : `número ${i + 1}`;
+  if (!s || !textoValido(s.nombre)) {
+    problemas.push(`Sociedad ${nombre}: le falta el nombre.`);
+    return false;
+  }
+  if (!campusPorId[s.campus]) {
+    problemas.push(`Sociedad ${nombre}: el campus "${s.campus}" no existe. Usa un id de campus.js.`);
+    return false;
+  }
+  return true;
+});
+
+const todasLasPublicaciones = (datosEscritos ? PUBLICACIONES : [])
+  .map((p) => (p ? { ...p, tipo: String(p.tipo || "").trim().toLowerCase() } : p))
+  .filter((p, i) => {
+    const nombre = p && textoValido(p.titulo) ? `"${p.titulo}"` : `número ${i + 1}`;
+    const errores = [];
+    if (!p) errores.push("está vacía");
+    else {
+      if (!textoValido(p.titulo)) errores.push("le falta el título");
+      if (p.tipo !== "evento" && p.tipo !== "logro") errores.push(`el tipo debe ser "evento" o "logro"`);
+      if (!campusPorId[p.campus]) errores.push(`el campus "${p.campus}" no existe`);
+      if (!fechaValida(p.fecha)) errores.push(`la fecha "${p.fecha}" debe verse así: "2026-11-14"`);
+    }
+    if (errores.length) problemas.push(`Publicación ${nombre}: ${errores.join(", ")}.`);
+    return errores.length === 0;
+  });
+
+if (problemas.length) {
+  problemas.forEach((p) => console.warn("[SEPREPA NEWS]", p));
+  // El aviso solo se ve en tu computadora, no en la página publicada
+  const local = location.protocol === "file:" || ["localhost", "127.0.0.1", ""].includes(location.hostname);
+  if (local) {
+    const aviso = document.createElement("div");
+    aviso.className = "aviso-errores";
+    aviso.innerHTML = `<strong>Hay que corregir algo en el contenido</strong> (este aviso solo lo ves tú):
+      <ul>${problemas.map((p) => `<li>${limpiar(p)}</li>`).join("")}</ul>`;
+    document.body.prepend(aviso);
+  }
+}
+
 function nombreCampus(id) {
   return campusPorId[id] ? `PrepaTec ${campusPorId[id].nombre}` : "";
 }
@@ -40,6 +111,10 @@ function delCampus(lista) {
   return estado.campus ? lista.filter((x) => x.campus === estado.campus) : lista;
 }
 
+// Una sociedad se identifica por su nombre y su campus
+// (puede haber "Sociedad de Debate" en varios campus)
+const claveSociedad = (x) => `${x.campus}|${x.sociedad || x.nombre}`;
+
 const porFechaNueva = (a, b) => leerFecha(b.fecha) - leerFecha(a.fecha);
 const porFechaVieja = (a, b) => leerFecha(a.fecha) - leerFecha(b.fecha);
 
@@ -47,12 +122,18 @@ function vacio(texto) {
   return `<p class="vacio">${texto} <a href="#publicar">¿Tu sociedad quiere ser la primera?</a></p>`;
 }
 
+function inicial(nombre) {
+  const sinPrefijo = nombre.replace(/^Sociedad\s+(de\s+(la\s+|las\s+|los\s+|el\s+)?|del\s+)?/i, "");
+  return (sinPrefijo.charAt(0) || nombre.charAt(0)).toUpperCase();
+}
+
 // ----- Elegir campus -----
 function elegirCampus(id, irAEventos) {
   estado.campus = campusPorId[id] ? id : "";
-  document.getElementById("filtro-sociedad").value = "";
+  selectSociedad.value = "";
   try {
-    history.replaceState(null, "", estado.campus ? `#campus=${estado.campus}` : location.pathname);
+    const base = location.pathname + location.search;
+    history.replaceState(null, "", estado.campus ? `${base}#campus=${estado.campus}` : base);
   } catch (e) { /* algunos navegadores no lo permiten con archivos locales */ }
   render();
   moverMapa();
@@ -73,7 +154,7 @@ let mascara = null;
 let limitesMexico = null;
 
 function icono(id) {
-  const total = PUBLICACIONES.filter((p) => p.campus === id).length;
+  const total = todasLasPublicaciones.filter((p) => p.campus === id).length;
   const clases = ["pin"];
   if (total > 0) clases.push("con-contenido");
   if (id === estado.campus) clases.push("activo");
@@ -112,7 +193,7 @@ function dentro(punto, anillo) {
 function dibujarPines() {
   capaPines.clearLayers();
   const grupos = [];
-  CAMPUS.forEach((c) => {
+  todosLosCampus.forEach((c) => {
     const punto = mapa.latLngToLayerPoint([c.lat, c.lng]);
     const grupo = grupos.find((g) => g.punto.distanceTo(punto) < 26);
     if (grupo) grupo.campus.push(c);
@@ -127,11 +208,16 @@ function dibujarPines() {
     const lat = g.campus.reduce((s, c) => s + c.lat, 0) / g.campus.length;
     const lng = g.campus.reduce((s, c) => s + c.lng, 0) / g.campus.length;
     const activo = g.campus.some((c) => c.id === estado.campus);
-    const grupo = L.marker([lat, lng], { icon: iconoGrupo(g.campus.length, activo), zIndexOffset: 200 });
+    const grupo = L.marker([lat, lng], {
+      icon: iconoGrupo(g.campus.length, activo),
+      title: `${g.campus.length} campus`,
+      zIndexOffset: 200,
+    });
     grupo.bindTooltip(
       `<strong>${g.campus.length} campus</strong><br>${g.campus.map((c) => limpiar(c.nombre)).join("<br>")}<br><em>Toca para acercar</em>`,
       { direction: "top", offset: [0, -18], className: "tooltip-mapa" });
     grupo.on("click", () => {
+      cerrarLetreros();
       mapa.fitBounds(g.campus.map((c) => [c.lat, c.lng]), { padding: [70, 70], maxZoom: 13 });
     });
     capaPines.addLayer(grupo);
@@ -161,6 +247,11 @@ function estiloEstado(f, cerca) {
   };
 }
 
+// Cierra los letreros (tooltips) abiertos de todos los puntos
+function cerrarLetreros() {
+  mapa.eachLayer((capa) => { if (capa.closeTooltip) capa.closeTooltip(); });
+}
+
 function verMexico() {
   mapa.fitBounds(limitesMexico, { animate: false });
 }
@@ -173,6 +264,7 @@ function moverMapa() {
     dibujarPines();
     marcadores[estado.campus].openTooltip();
   } else {
+    cerrarLetreros();
     verMexico();
   }
 }
@@ -188,7 +280,7 @@ if (window.L && typeof ESTADOS_MEXICO !== "undefined") {
 
   // Estados que tienen al menos un campus se pintan de azul claro
   ESTADOS_MEXICO.features.forEach((f) => {
-    f.properties.conCampus = CAMPUS.some((c) =>
+    f.properties.conCampus = todosLosCampus.some((c) =>
       f.geometry.coordinates.some((poligono) => dentro([c.lng, c.lat], poligono[0])));
   });
   capaEstados = L.geoJSON(ESTADOS_MEXICO, { style: (f) => estiloEstado(f, false), interactive: false }).addTo(mapa);
@@ -202,10 +294,13 @@ if (window.L && typeof ESTADOS_MEXICO !== "undefined") {
   });
   let cargados = 0;
   let fallidos = 0;
-  calles.on("tileload", () => { cargados++; });
+  calles.on("tileload", () => {
+    cargados++;
+    document.getElementById("mapa-aviso").hidden = true;
+  });
   calles.on("tileerror", () => {
     fallidos++;
-    if (fallidos === 6 && cargados === 0) document.getElementById("mapa-aviso").hidden = false;
+    if (fallidos >= 6 && cargados === 0) document.getElementById("mapa-aviso").hidden = false;
   });
 
   // Tapa todo lo que está fuera de México (Estados Unidos, Guatemala, etc.)
@@ -227,9 +322,9 @@ if (window.L && typeof ESTADOS_MEXICO !== "undefined") {
   mapa.on("resize", () => mapa.setMinZoom(mapa.getBoundsZoom(limitesMexico)));
 
   capaPines = L.layerGroup().addTo(mapa);
-  CAMPUS.forEach((c) => {
+  todosLosCampus.forEach((c) => {
     const marcador = L.marker([c.lat, c.lng], { icon: icono(c.id), title: nombreCampus(c.id) });
-    marcador.bindTooltip(`<strong>${nombreCampus(c.id)}</strong><br>${c.ciudad}`, {
+    marcador.bindTooltip(`<strong>${limpiar(nombreCampus(c.id))}</strong><br>${limpiar(c.ciudad)}`, {
       direction: "top", offset: [0, -12], className: "tooltip-mapa",
     });
     marcador.on("click", () => elegirCampus(c.id, true));
@@ -238,7 +333,7 @@ if (window.L && typeof ESTADOS_MEXICO !== "undefined") {
 
   mapa.on("zoomend", () => { dibujarPines(); actualizarCapas(); });
   document.getElementById("ver-mexico").addEventListener("click", () => {
-    mapa.closeTooltip();
+    cerrarLetreros();
     verMexico();
   });
   dibujarPines();
@@ -246,11 +341,12 @@ if (window.L && typeof ESTADOS_MEXICO !== "undefined") {
 } else {
   document.getElementById("mapa").innerHTML =
     '<p class="vacio">No se pudo cargar el mapa. Usa la lista de campus.</p>';
+  document.querySelector(".leyenda").hidden = true;
 }
 
 // ----- Lista de campus junto al mapa y selector del encabezado -----
 const selectorCampus = document.getElementById("selector-campus");
-CAMPUS.forEach((c) => {
+todosLosCampus.forEach((c) => {
   const opcion = document.createElement("option");
   opcion.value = c.id;
   opcion.textContent = nombreCampus(c.id);
@@ -259,23 +355,26 @@ CAMPUS.forEach((c) => {
 selectorCampus.addEventListener("change", () => elegirCampus(selectorCampus.value, true));
 document.getElementById("quitar-campus").addEventListener("click", () => elegirCampus("", false));
 
+const listaCampus = document.getElementById("lista-campus");
+listaCampus.addEventListener("click", (evento) => {
+  const boton = evento.target.closest(".campus-boton");
+  if (boton) elegirCampus(boton.dataset.campus, true);
+});
+
 function mostrarListaCampus() {
   const regiones = ["Norte", "Centro"];
-  document.getElementById("lista-campus").innerHTML = regiones.map((region) => {
-    const botones = CAMPUS.filter((c) => c.region === region).map((c) => {
-      const total = PUBLICACIONES.filter((p) => p.campus === c.id).length;
+  listaCampus.innerHTML = regiones.map((region) => {
+    const botones = todosLosCampus.filter((c) => c.region === region).map((c) => {
+      const total = todasLasPublicaciones.filter((p) => p.campus === c.id).length;
+      const activo = c.id === estado.campus;
       return `
-        <button type="button" class="campus-boton${c.id === estado.campus ? " activo" : ""}" data-campus="${c.id}">
+        <button type="button" class="campus-boton${activo ? " activo" : ""}" data-campus="${limpiar(c.id)}" aria-pressed="${activo}">
           <span>${limpiar(c.nombre)}</span>
-          <small>${total || ""}</small>
+          <small${total ? ` aria-label="${total} publicaciones"` : ""}>${total || ""}</small>
         </button>`;
     }).join("");
-    return `<h3>${region} de México</h3><div class="campus-botones">${botones}</div>`;
+    return botones ? `<h3>${region} de México</h3><div class="campus-botones">${botones}</div>` : "";
   }).join("");
-
-  document.querySelectorAll(".campus-boton").forEach((boton) => {
-    boton.addEventListener("click", () => elegirCampus(boton.dataset.campus, true));
-  });
 }
 
 // ----- Registro con filtros -----
@@ -287,41 +386,42 @@ const botonesTipo = document.querySelectorAll(".chip");
 function llenarSociedades() {
   const elegida = selectSociedad.value;
   selectSociedad.innerHTML = '<option value="">Todas las sociedades</option>';
-  delCampus(SOCIEDADES).forEach((s) => {
+  delCampus(todasLasSociedades).forEach((s) => {
     const opcion = document.createElement("option");
-    opcion.value = s.nombre;
-    opcion.textContent = s.nombre;
+    opcion.value = claveSociedad(s);
+    opcion.textContent = estado.campus ? s.nombre : `${s.nombre} · ${campusPorId[s.campus].nombre}`;
     selectSociedad.appendChild(opcion);
   });
-  selectSociedad.value = elegida;
+  const existe = [...selectSociedad.options].some((o) => o.value === elegida);
+  selectSociedad.value = existe ? elegida : "";
 }
 
 function mostrarRegistro() {
-  const buscar = inputTexto.value.trim().toLowerCase();
+  const buscar = normalizar(inputTexto.value.trim());
   const sociedad = selectSociedad.value;
 
-  const resultados = [...delCampus(PUBLICACIONES)].sort(porFechaNueva).filter((p) => {
+  const resultados = [...delCampus(todasLasPublicaciones)].sort(porFechaNueva).filter((p) => {
     if (estado.tipo !== "todo" && p.tipo !== estado.tipo) return false;
-    if (sociedad && p.sociedad !== sociedad) return false;
+    if (sociedad && claveSociedad(p) !== sociedad) return false;
     if (buscar) {
-      const todo = `${p.titulo} ${p.sociedad} ${p.descripcion} ${nombreCampus(p.campus)}`.toLowerCase();
+      const todo = normalizar(`${p.titulo} ${p.sociedad} ${p.descripcion} ${p.lugar} ${nombreCampus(p.campus)}`);
       if (!todo.includes(buscar)) return false;
     }
     return true;
   });
 
   if (resultados.length === 0) {
-    listaRegistro.innerHTML = '<li><p class="vacio">No encontramos nada con esos filtros.</p></li>';
+    listaRegistro.innerHTML = '<li class="sin-resultados"><p class="vacio">No encontramos nada con esos filtros.</p></li>';
     return;
   }
 
   listaRegistro.innerHTML = resultados.map((p) => `
     <li>
-      <time>${fechaLarga(p.fecha)}</time>
+      <time datetime="${p.fecha}">${fechaLarga(p.fecha)}</time>
       <span class="tipo tipo-${p.tipo}">${p.tipo === "logro" ? "Logro" : "Evento"}</span>
       <div>
         <strong>${limpiar(p.titulo)}</strong>
-        <p class="meta">${limpiar(p.sociedad)} · ${limpiar(nombreCampus(p.campus))}</p>
+        <p class="meta">${limpiar([p.sociedad, nombreCampus(p.campus)].filter(Boolean).join(" · "))}</p>
         <p>${limpiar(p.descripcion)}</p>
       </div>
     </li>`).join("");
@@ -329,8 +429,10 @@ function mostrarRegistro() {
 
 botonesTipo.forEach((boton) => {
   boton.addEventListener("click", () => {
-    botonesTipo.forEach((b) => b.classList.remove("activo"));
-    boton.classList.add("activo");
+    botonesTipo.forEach((b) => {
+      b.classList.toggle("activo", b === boton);
+      b.setAttribute("aria-pressed", b === boton);
+    });
     estado.tipo = boton.dataset.tipo;
     mostrarRegistro();
   });
@@ -340,8 +442,8 @@ inputTexto.addEventListener("input", mostrarRegistro);
 
 // ----- Dibujar toda la página -----
 function render() {
-  const publicaciones = delCampus(PUBLICACIONES);
-  const sociedades = delCampus(SOCIEDADES);
+  const publicaciones = delCampus(todasLasPublicaciones);
+  const sociedades = delCampus(todasLasSociedades);
   const eventosProximos = publicaciones
     .filter((p) => p.tipo === "evento" && leerFecha(p.fecha) >= hoy)
     .sort(porFechaVieja);
@@ -357,7 +459,7 @@ function render() {
   });
 
   // Cifras
-  document.getElementById("cifra-campus").textContent = campus ? 1 : CAMPUS.length;
+  document.getElementById("cifra-campus").textContent = campus ? 1 : todosLosCampus.length;
   document.getElementById("cifra-sociedades").textContent = sociedades.length;
   document.getElementById("cifra-logros").textContent = logros.length;
   document.getElementById("cifra-eventos").textContent = eventosProximos.length;
@@ -368,9 +470,9 @@ function render() {
     <span class="destacado-ceja">${destacado.tipo === "logro" ? "Último logro" : "Próximo evento"}</span>
     <h2>${limpiar(destacado.titulo)}</h2>
     <p>${limpiar(destacado.descripcion)}</p>
-    <p class="meta">${limpiar(destacado.sociedad)} · ${limpiar(nombreCampus(destacado.campus))}</p>
-    <time>${fechaLarga(destacado.fecha)}</time>` : `
-    <span class="destacado-ceja">${campus ? nombreCampus(estado.campus) : "Sin publicaciones"}</span>
+    <p class="meta">${limpiar([destacado.sociedad, nombreCampus(destacado.campus)].filter(Boolean).join(" · "))}</p>
+    <time datetime="${destacado.fecha}">${fechaLarga(destacado.fecha)}</time>` : `
+    <span class="destacado-ceja">${campus ? limpiar(nombreCampus(estado.campus)) : "Sin publicaciones"}</span>
     <h2>Todavía no hay nada publicado aquí.</h2>
     <p><a href="#publicar">Sé la primera sociedad en publicar.</a></p>`;
 
@@ -389,7 +491,7 @@ function render() {
           <div class="evento-cuerpo">
             <span class="faltan">${faltan(e.fecha)}</span>
             <h3>${limpiar(e.titulo)}</h3>
-            <p class="meta">${limpiar(e.sociedad)} · ${limpiar(nombreCampus(e.campus))}</p>
+            <p class="meta">${limpiar([e.sociedad, nombreCampus(e.campus)].filter(Boolean).join(" · "))}</p>
             <p class="detalles">${limpiar([e.hora, e.lugar].filter(Boolean).join(" · "))}</p>
             <p>${limpiar(e.descripcion)}</p>
           </div>
@@ -402,15 +504,14 @@ function render() {
     : logros.slice(0, 6).map((l) => `
       <article class="logro">
         <div class="logro-imagen">
-          ${l.imagen
-            ? `<img src="${limpiar(l.imagen)}" alt="" loading="lazy">`
-            : `<span>${limpiar(campusPorId[l.campus] ? campusPorId[l.campus].nombre : "")}</span>`}
+          <span>${limpiar(campusPorId[l.campus].nombre)}</span>
+          ${l.imagen ? `<img src="${limpiar(l.imagen)}" alt="" loading="lazy" onerror="this.remove()">` : ""}
         </div>
         <div class="logro-cuerpo">
           <p class="meta">${limpiar(l.sociedad)}</p>
           <h3>${limpiar(l.titulo)}</h3>
           <p>${limpiar(l.descripcion)}</p>
-          <time>${fechaLarga(l.fecha)} · ${limpiar(nombreCampus(l.campus))}</time>
+          <time datetime="${l.fecha}">${fechaLarga(l.fecha)} · ${limpiar(nombreCampus(l.campus))}</time>
         </div>
       </article>`).join("");
 
@@ -418,10 +519,10 @@ function render() {
   document.getElementById("lista-sociedades").innerHTML = sociedades.length === 0
     ? vacio("Este campus todavía no tiene sociedades registradas.")
     : sociedades.map((s) => {
-      const total = PUBLICACIONES.filter((p) => p.sociedad === s.nombre).length;
+      const total = todasLasPublicaciones.filter((p) => claveSociedad(p) === claveSociedad(s)).length;
       return `
         <article class="sociedad">
-          <span class="sociedad-inicial">${limpiar(s.nombre.replace(/^Sociedad (de |del )?/i, "").charAt(0))}</span>
+          <span class="sociedad-inicial">${limpiar(inicial(s.nombre))}</span>
           <div>
             <h3>${limpiar(s.nombre)}</h3>
             <p class="meta">${limpiar(nombreCampus(s.campus))}</p>
@@ -435,12 +536,24 @@ function render() {
   llenarSociedades();
   mostrarRegistro();
   mostrarListaCampus();
-  Object.keys(marcadores).forEach((id) => marcadores[id].setIcon(icono(id)));
-  if (mapa) dibujarPines();
+  if (mapa) {
+    Object.keys(marcadores).forEach((id) => marcadores[id].setIcon(icono(id)));
+    dibujarPines();
+  }
 }
 
 // Si el enlace trae un campus (ej. index.html#campus=cumbres), lo abrimos directo
-const campusInicial = location.hash.startsWith("#campus=") ? location.hash.slice(8) : "";
-estado.campus = campusPorId[campusInicial] ? campusInicial : "";
+function campusDelEnlace() {
+  if (!location.hash.startsWith("#campus=")) return "";
+  const id = decodeURIComponent(location.hash.slice(8));
+  return campusPorId[id] ? id : "";
+}
+
+window.addEventListener("hashchange", () => {
+  const id = campusDelEnlace();
+  if (id && id !== estado.campus) elegirCampus(id, true);
+});
+
+estado.campus = campusDelEnlace();
 render();
 moverMapa();
