@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SEPREPA NEWS</title>
+  <meta name="description" content="Logros, eventos y registro de las Sociedades Estudiantiles de PrepaTec.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;700;800&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="estilos.css">
+</head>
+<body>
+
+  <!-- Barra superior -->
+  <div class="barra-top">
+    <div class="contenedor">
+      <span>Sociedades Estudiantiles · PrepaTec</span>
+      <a href="#publicar">¿Quieres publicar algo?</a>
+    </div>
+  </div>
+
+  <!-- Encabezado y menú -->
+  <header class="encabezado">
+    <div class="contenedor">
+      <a href="#" class="marca">SEPREPA<span>NEWS</span></a>
+      <nav class="menu">
+        <a href="#eventos">Eventos</a>
+        <a href="#logros">Logros</a>
+        <a href="#registro">Registro</a>
+        <a href="#sociedades">Sociedades</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Portada -->
+  <section class="portada">
+    <div class="contenedor">
+      <p class="etiqueta">Hecho por y para estudiantes</p>
+      <h1>Todo lo que pasa en las <mark>Sociedades Estudiantiles</mark>, en un solo lugar.</h1>
+      <p class="portada-texto">
+        SEPREPA NEWS es el espacio donde las Sociedades Estudiantiles de la Prepa
+        comparten sus logros, anuncian sus próximos eventos y guardan registro de
+        todo lo que han hecho. Si tu sociedad hizo algo, aquí se queda.
+      </p>
+      <div class="portada-botones">
+        <a href="#eventos" class="boton boton-blanco">Ver próximos eventos</a>
+        <a href="#registro" class="boton boton-borde">Explorar el registro</a>
+      </div>
+      <div class="cifras">
+        <div><strong id="cifra-sociedades">0</strong><span>sociedades</span></div>
+        <div><strong id="cifra-logros">0</strong><span>logros</span></div>
+        <div><strong id="cifra-eventos">0</strong><span>eventos próximos</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Próximos eventos -->
+  <section id="eventos" class="seccion">
+    <div class="contenedor">
+      <div class="seccion-titulo">
+        <h2>Próximos eventos</h2>
+        <p>Apártalo en tu calendario.</p>
+      </div>
+      <div id="lista-eventos" class="rejilla-eventos"></div>
+    </div>
+  </section>
+
+  <!-- Logros -->
+  <section id="logros" class="seccion seccion-gris">
+    <div class="contenedor">
+      <div class="seccion-titulo">
+        <h2>Logros recientes</h2>
+        <p>Lo que nuestras sociedades han conseguido.</p>
+      </div>
+      <div id="lista-logros" class="rejilla-logros"></div>
+    </div>
+  </section>
+
+  <!-- Registro completo -->
+  <section id="registro" class="seccion">
+    <div class="contenedor">
+      <div class="seccion-titulo">
+        <h2>Registro</h2>
+        <p>Todo lo que se ha publicado, del más nuevo al más viejo.</p>
+      </div>
+
+      <div class="filtros">
+        <div class="filtro-tipos">
+          <button class="chip activo" data-tipo="todo">Todo</button>
+          <button class="chip" data-tipo="logro">Logros</button>
+          <button class="chip" data-tipo="evento">Eventos</button>
+        </div>
+        <select id="filtro-sociedad" aria-label="Filtrar por sociedad">
+          <option value="">Todas las sociedades</option>
+        </select>
+        <input id="filtro-texto" type="search" placeholder="Buscar…" aria-label="Buscar en el registro">
+      </div>
+
+      <ul id="lista-registro" class="registro"></ul>
+    </div>
+  </section>
+
+  <!-- Sociedades -->
+  <section id="sociedades" class="seccion seccion-gris">
+    <div class="contenedor">
+      <div class="seccion-titulo">
+        <h2>Sociedades</h2>
+        <p>Conoce a quienes hacen que todo esto pase.</p>
+      </div>
+      <div id="lista-sociedades" class="rejilla-sociedades"></div>
+    </div>
+  </section>
+
+  <!-- Cómo publicar -->
+  <section id="publicar" class="seccion publicar">
+    <div class="contenedor">
+      <h2>¿Tu sociedad quiere publicar algo?</h2>
+      <ol class="pasos">
+        <li><strong>Escríbenos</strong> qué pasó o qué evento van a hacer.</li>
+        <li><strong>Incluye</strong> fecha, lugar y una descripción corta.</li>
+        <li><strong>Lo subimos</strong> a la página y queda en el registro.</li>
+      </ol>
+      <a href="mailto:correo@ejemplo.com" class="boton boton-blanco">Enviar mi publicación</a>
+    </div>
+  </section>
+
+  <footer class="pie">
+    <div class="contenedor">
+      <span class="marca">SEPREPA<span>NEWS</span></span>
+      <p>Proyecto estudiantil de las Sociedades Estudiantiles de PrepaTec.</p>
+    </div>
+  </footer>
+
+  <script src="contenido.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
