@@ -277,8 +277,24 @@ section { scroll-margin-top: 110px; }
   z-index: 0;
 }
 .mapa .vacio { padding: 24px; }
-/* Mapa en tonos grises para que resalten los puntos azules */
-.mapa .leaflet-tile-pane { filter: grayscale(1) contrast(0.9) brightness(1.05); }
+/* Mapa de calles en tonos suaves para que resalten los puntos azules */
+.mapa .capa-calles { filter: saturate(0.35) brightness(1.03); }
+.mapa-caja { position: relative; }
+.mapa-aviso {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 28px;
+  z-index: 500;
+  margin: 0;
+  padding: 10px 14px;
+  font-size: 14px;
+  background: var(--blanco);
+  border-left: 4px solid var(--azul);
+  border-radius: var(--radio);
+  box-shadow: 0 2px 8px rgba(0, 30, 80, 0.2);
+}
+.leaflet-control-layers { font-family: "Open Sans", Arial, sans-serif; }
 
 .pin {
   display: block;

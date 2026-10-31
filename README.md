@@ -28,5 +28,8 @@ Copia un bloque `{ ... }`, pégalo y cambia los textos. Guarda el archivo y reca
 | `index.html` | La estructura de la página |
 | `estilos.css` | Colores, letras y diseño |
 | `contenido.js` | **El contenido (aquí se edita)** |
-| `campus.js` | La lista de los 29 campus y su ubicación en el mapa |
+| `campus.js` | La lista de los 29 campus y su ubicación exacta en el mapa |
 | `app.js` | Arma la página y el mapa con el contenido |
+| `vendor/leaflet/` | La librería del mapa ([Leaflet](https://leafletjs.com) 1.9.4), guardada aquí para no depender de otros sitios |
+
+El mapa base (calles y satélite) viene de Esri y necesita internet.

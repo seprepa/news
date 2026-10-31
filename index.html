@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
   <link rel="stylesheet" href="estilos.css">
 </head>
 <body>
@@ -81,7 +81,10 @@
         <p>Toca un punto en el mapa o elige tu campus de la lista para ver sus eventos y logros.</p>
       </div>
       <div class="mapa-rejilla">
-        <div id="mapa" class="mapa" role="region" aria-label="Mapa de campus PrepaTec"></div>
+        <div class="mapa-caja">
+          <div id="mapa" class="mapa" role="region" aria-label="Mapa de campus PrepaTec"></div>
+          <p id="mapa-aviso" class="mapa-aviso" hidden>No se pudo cargar el mapa. Revisa tu conexión a internet; mientras, puedes usar la lista de campus.</p>
+        </div>
         <div id="lista-campus" class="lista-campus"></div>
       </div>
     </div>
@@ -168,7 +171,7 @@
     </div>
   </footer>
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="vendor/leaflet/leaflet.js"></script>
   <script src="campus.js"></script>
   <script src="contenido.js"></script>
   <script src="app.js"></script>

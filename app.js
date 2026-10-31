@@ -82,18 +82,43 @@ function moverMapa() {
   if (!mapa) return;
   if (estado.campus) {
     const c = campusPorId[estado.campus];
-    mapa.setView([c.lat, c.lng], 11);
+    mapa.setView([c.lat, c.lng], 15);
+    marcadores[estado.campus].openTooltip();
   } else {
     mapa.fitBounds(CAMPUS.map((c) => [c.lat, c.lng]), { padding: [24, 24] });
   }
 }
 
 if (window.L) {
-  mapa = L.map("mapa", { scrollWheelZoom: false });
-  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-    maxZoom: 18,
-  }).addTo(mapa);
+  mapa = L.map("mapa", { scrollWheelZoom: false, maxZoom: 19 });
+
+  // Mapas base de Esri: funcionan aunque la página se abra con doble clic
+  const esri = "https://server.arcgisonline.com/ArcGIS/rest/services";
+  const calles = L.tileLayer(`${esri}/World_Street_Map/MapServer/tile/{z}/{y}/{x}`, {
+    attribution: "Mapa &copy; Esri, HERE, Garmin, OpenStreetMap",
+    maxZoom: 19,
+    className: "capa-calles",
+  });
+  const satelite = L.layerGroup([
+    L.tileLayer(`${esri}/World_Imagery/MapServer/tile/{z}/{y}/{x}`, {
+      attribution: "Imágenes &copy; Esri, Maxar, Earthstar Geographics",
+      maxZoom: 19,
+    }),
+    L.tileLayer(`${esri}/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}`, { maxZoom: 19 }),
+  ]);
+  calles.addTo(mapa);
+  L.control.layers({ "Mapa": calles, "Satélite": satelite }, null, { position: "topright" }).addTo(mapa);
+
+  // Si no carga ninguna parte del mapa, avisamos
+  let cargados = 0;
+  let fallidos = 0;
+  calles.on("tileload", () => { cargados++; });
+  calles.on("tileerror", () => {
+    fallidos++;
+    if (fallidos === 6 && cargados === 0) {
+      document.getElementById("mapa-aviso").hidden = false;
+    }
+  });
 
   CAMPUS.forEach((c) => {
     const marcador = L.marker([c.lat, c.lng], { icon: icono(c.id), title: nombreCampus(c.id) }).addTo(mapa);
